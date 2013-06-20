@@ -1,0 +1,163 @@
+#!/usr/bin/python
+import base64
+import os
+import urllib
+import httplib
+import json
+import optparse
+from xml.dom import minidom
+
+def token_2_tenant_id(token_string, endpoint_url, tenant_name, usehttps) :
+        params=urllib.urlencode({})
+        headers = { "X-Auth-Token": token_string, "Content-Type": "application/json", "X-Auth-Project-Id": tenant_name }
+        #headers = '{ "X-Auth-Token":"'+token_string+'", "Content-Type": "application/json", "X-Auth-Project-Id":"'+tenant_name+'" }'
+        if (usehttps == True):
+                conn = httplib.HTTPSConnection(endpoint_url, key_file='../cert/priv.pem', cert_file='../cert/srv_test.crt')
+        else:
+                conn = httplib.HTTPConnection(endpoint_url)
+
+        conn.request("GET", "/v2.0/tenants", params, headers)
+
+        # HTTP response
+        #print headers
+        response = conn.getresponse()
+        data = response.read()
+        dd = json.loads(data)
+        conn.close()
+        return "%s, %s" % (dd['tenants'][0]['name'], dd['tenants'][0]['id'])
+
+def function_get_call(token_str, tenant_id, method_str, action_str, url, usehttps):
+        headers = { "X-Auth-Token": token_str, "Content-Type": "application/json" }
+        #if ( "get".lower() in method_str.lower() ) :
+        #        headers = { "X-Auth-Token": token_str, "Content-Type": "application/xml" }
+        params=urllib.urlencode({})
+        if (usehttps == True):
+                conn = httplib.HTTPSConnection(url, key_file='../cert/priv.pem', cert_file='../cert/srv_test.crt')
+        else:
+                conn = httplib.HTTPConnection(url)
+
+        #conn.request("GET", "/v2.0/tenants", params, headers)
+        #action_str="/v2/"+tenant_id+"/"+command_str
+        #print "^^^^^URL: %s METHOD:%s, ACTIONS:%s, HEADER:%s" % (url, method_str, action_str.replace("{tenant_id}",tenant_id), headers)
+        if tenant_id :
+                conn.request(method_str, action_str.replace("{tenant_id}",tenant_id), params, headers)
+        else :
+                conn.request(method_str, action_str, params, headers)
+        #conn.request("GET", "/v2/19e208c9edde42ffb8e3828e09670cfc/images", params, headers)
+        response = conn.getresponse()
+        data = response.read()
+        dd = json.loads(data)
+        conn.close()
+        #print json.dumps(dd,indent=2)
+        return dd
+
+def passwd_4_token(cred_file, usehttps) :
+	conf_file = open(cred_file)
+        osuser=ospassword=ostenant=url=""
+        for aline in conf_file :
+        # Do string processing here
+                words = aline.split("=")
+                if words[0].find("OS_USERNAME") != -1 :
+                        osuser=words[1].rstrip()
+                elif words[0].find("OS_PASSWORD") != -1 :
+                        #ospassword = words[1].replace('\"','')
+                        ospassword = words[1].rstrip()
+                if words[0].find("OS_TENANT_NAME") != -1 :
+                        ostenant=words[1].rstrip()
+                elif words[0].find("OS_AUTH_URL") != -1 :
+                        url=words[1].replace('\"','').replace('http://', '').replace('/v2.0', '').rstrip()
+			#url="10.52.224.48:5000"
+        conf_file.close()
+        params = '{"auth":{"tenantName":"'+ostenant+'", "passwordCredentials":{"username":"'+osuser+'","password":'+ospassword+'}}}'
+        #print "PARAMS: %s and URL:%s" % (params, url)
+        headers = { "Content-Type": "application/json", "Accept": "application/json", "User-Agent": "python-novaclient" }
+        if (usehttps == True):
+                conn = httplib.HTTPSConnection(url, key_file='../cert/priv.pem', cert_file='../cert/srv_test.crt')
+        else:
+                conn = httplib.HTTPConnection(url)
+ 
+        conn.request("POST", "/v2.0/tokens", params, headers)
+ 
+        # HTTP response
+        response = conn.getresponse()
+        data = response.read()
+        dd = json.loads(data)
+        conn.close()
+        return "%s, %s, %s, %s" % (dd['access']['token']['id'] , dd['access']['token']['expires'], dd['access']['token']['tenant']['id'], dd['access']['token']['tenant']['name'])
+
+
+#################
+# Main
+################
+if __name__ == '__main__':
+	        #####################
+        # Parameter definition
+        #####################
+        public_port="8774"
+        # arguments
+        parser = optparse.OptionParser(usage="usage: %prog [options] auth_token",
+                          version="%prog 1.0")
+        parser = optparse.OptionParser()
+        parser.add_option('-c', '--create', action="store", dest="action_string_create", help='To excute a creation command i.e. create_server')
+        parser.add_option('-d', '--delete', action="store", dest="action_string_delete", help='To execute a deleton command i.e. delete_server')
+        parser.add_option('-f', '--config_file', action="store", dest="cred_file", help='Provide the OS_USERNAME and OS_PASSOWRD for authentication')
+        parser.add_option('-k', '--token', action="store", dest="token_string", help='Provide the authentication token')
+        parser.add_option('-l', '--url', action="store", dest="endpoint_url", help='Provide service endpoint URL when token is provided')
+        parser.add_option("-q",action="store_true",dest='quiteMode',help="Run this in quiet/non-verbose mode",default=False)
+        parser.add_option('-r', '--read', action="store", dest="action_string_read", help='To execute a Read/Get command via API')
+        parser.add_option("-S",action="store_true",dest='simpleMode',help="Display the result in simple non-verbosing mode",default=False)
+        parser.add_option('-t', '--tenant_name', action="store", dest="tenant_name", help='Provide the tenant name')
+        parser.add_option('-u', '--update', action="store", dest="action_string_update", help='To execute a modification command via API i.e. modify_server??current_server_id=<server_id>,new_server_name=<name>,tenant_name=<_name> for change VM server hostname or ..., new_adminPass=<password> for change VM admin password or ..., new_flavorRef=<flavor_index> for resize or ..., confirmResize=Yes for resize confirmation or ...,revertResize=True for reverting the last resize.')
+        parser.add_option('-v', '--detail', action="store", dest="action_string_get_detail", help='To execute a read detail command via API i.e. server_detail')
+        (opts, args) = parser.parse_args()
+        #token_string = open(opts.token_string)
+        usehttps=False
+        xmldoc = minidom.parse(os.getcwd()+"/nagios/api.xml")
+        itemlist = xmldoc.getElementsByTagName('url')
+        if opts.action_string_create :
+                action_string=opts.action_string_create
+                action_flag="POST"
+        elif opts.action_string_delete :
+                action_string=opts.action_string_delete
+                action_flag="DELETE"
+        elif opts.action_string_read :
+                action_string=opts.action_string_read
+                action_flag="GET"
+        elif opts.action_string_update :
+                action_string=opts.action_string_update
+                action_flag="PUT"
+        elif opts.action_string_get_detail :
+                action_string=opts.action_string_get_detail
+                action_flag="DETAIL"
+        else :
+                action_string=""
+                action_flag=""
+        ######################
+        # Get the endpoint url
+        ######################
+        url=""
+        if not opts.token_string and opts.cred_file :
+                conf_file = open(opts.cred_file.rstrip())
+                for aline in conf_file :
+                        words = aline.split("=")
+                        if words[0].find("OS_AUTH_URL") != -1 :
+                                url=words[1].replace('\"','').replace('http://', '').replace('/v2.0/', '').rstrip()
+                conf_file.close()
+                public_url=url.split(":")[0]+":"+public_port
+        elif opts.token_string and opts.endpoint_url :
+                url=opts.endpoint_url.replace('\"','').replace('http://', '').replace('/v2.0/', '').rstrip()
+                public_url=url.split(":")[0]+":"+public_port
+        else :
+                public_url="127.0.0.1:8774"
+
+	##############################
+	# Get all Get from action_string
+	###############################
+	if( opts.token_string and action_string )  :
+                results=token_2_tenant_id(opts.token_string, url, opts.tenant_name,usehttps).split(",")
+                for s in itemlist :
+                        if (action_string.lower()  in s.attributes['action'].value.lower() ) :
+                                print json.dumps(function_get_call(opts.token_string, results[1].lstrip().rstrip(), s.attributes['method'].value, s.attributes['uri'].value.lstrip().rstrip(), public_url, usehttps), indent=4, sort_keys=True)
+	else :
+		print "Invalid action!"
+

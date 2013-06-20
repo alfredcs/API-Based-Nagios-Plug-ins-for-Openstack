@@ -1,0 +1,24 @@
+<openstackAPI>
+	<url class="identita" action="tokens" method="POST" uri="v2.0/tokens" note="Returns a token when credentials are supplied. A payload of credentials must be included in the body"></url>
+	<url class="identity" action="tenants" method="GET" uri="v2.0/tenants" note="Returns detailed information about this specific version of the API"></url>
+	<url class="compute" action="version" method="GET" uri="v2" note="Returns detailed information about this specific version of the API"></url>
+	<url class="compute" action="extensions" method="GET" uri="v2/{tenant_id}/extensions" note="Lists all available extensions."></url>
+	<url class="compute" action="extensionsDetail" method="GET" uri="v2/{tenant_id}/extensions/{alias}" note="Gets details about a specific extension. Extensions enable the introduction of new features in the API without requiring a version change and they allow the introducti of vendor-specific functionality"></url>
+	<url class="compute" action="limits" method="GET" uri="/v2/{tenant_id}/limits" note="Returns current limits for the account."></url>
+	<url class="compute" action="images" method="GET" uri="/v2/{tenant_id}/images" note="Lists IDs, names, and links for available images."></url>
+	<url class="compute" action="flavors" method="GET" uri="/v2/{tenant_id}/flavors" note="Lists IDs, names, and links for available flavors. "></url>
+	<url class="compute" action="servers" method="GET" uri="/v2/{tenant_id}/servers" note="List all VMs"></url>
+	<url class="compute" action="create_server" method="POST" uri="/v2/{tenant_id}/servers" note="Create a new VM server"></url>
+	<url class="compute" action="modify_server" method="PUT" uri="/v2/{tenant_id}/servers/{server_id}" note="Modify a VM server"></url>
+	<url class="compute" action="alter_server" method="POST" uri="/v2/{tenant_id}/servers/{server_id}" note="Modify a VM server"></url>
+	<url class="compute" action="delete_server" method="DELETE" uri="/v2/{tenant_id}/servers/{server_id}" note="Delete a VM server"></url>
+	<url class="compute" action="hosts" method="GET" uri="/v2/{tenant_id}/os-hosts" note="List all VMs"></url>
+	<url class="compute" action="server/detail" method="GET" uri="/v2/{tenant_id}/servers/{server_id}" note="List a VM server detail"></url>
+	<url class="compute" action="hypervisors" method="GET" uri="/v2/{tenant_id}/os-hypervisors" note=""></url>
+	<url class="compute" action="keypairs" method="GET" uri="/v2/{tenant_id}/os-keypairs" note="List stored keypairs"></url>
+	<url class="compute" action="networks" method="GET" uri="/v2/{tenant_id}/os-networks" note="List existing network keypairs"></url>
+	<url class="compute" action="endpoints" method="GET" uri="/v2.0/endpoints" note="List service endpoints"></url>
+	<url class="compute" action="" method="GET" uri="/v2/{tenant_id}/" note=""></url>
+	<url class="compute" action="" method="GET" uri="/v2/{tenant_id}/" note=""></url>
+	<url class="omputeExtensions" action="" method="" uri="" note=""></url>
+</openstackAPI>
